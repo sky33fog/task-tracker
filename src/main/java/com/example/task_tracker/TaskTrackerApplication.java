@@ -11,4 +11,3 @@ public class TaskTrackerApplication {
 	}
 
 }
-//todo доделать метод findById в taskService, доделать обработку сета observers
