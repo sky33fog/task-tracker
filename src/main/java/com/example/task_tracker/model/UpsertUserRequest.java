@@ -9,5 +9,7 @@ public class UpsertUserRequest {
     @NotBlank(message = "Имя автора должно быть указано!")
     private String username;
 
+    private String password;
+
     private String email;
 }

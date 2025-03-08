@@ -14,10 +14,10 @@ import org.mapstruct.ReportingPolicy;
         uses = UserMapper.class)
 public interface TaskMapper {
 
-    Task responseToTask(UpsertTaskRequest upsertTaskRequest);
+    Task requestToTask(UpsertTaskRequest upsertTaskRequest);
 
     @Mapping(source = "taskId", target = "id")
-    Task responseToTask(String taskId, UpsertTaskRequest upsertTaskRequest);
+    Task requestToTask(String taskId, UpsertTaskRequest upsertTaskRequest);
 
     TaskResponse taskToResponse(Task task);
 

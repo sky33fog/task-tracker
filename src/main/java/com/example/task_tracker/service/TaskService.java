@@ -5,7 +5,10 @@ import com.example.task_tracker.entity.User;
 import com.example.task_tracker.exception.EntityNotFoundException;
 import com.example.task_tracker.repository.TaskRepository;
 import com.example.task_tracker.repository.UserRepository;
+import com.example.task_tracker.security.AppUserPrincipal;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
@@ -15,7 +18,6 @@ import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -38,7 +40,14 @@ public class TaskService {
         task.setCreatedAt(Instant.now());
         task.setUpdatedAt(Instant.now());
 
-        return getFilledMonoTask(task).flatMap(taskRepository::save);
+        return getAuthUsername()
+                .zipWhen(userRepository::findByUsername)
+                .map(tuple -> {
+                    task.setAuthorId(tuple.getT2().getId());
+                    return task;
+                    })
+                .zipWhen(this::getFilledMonoTask)
+                .flatMap(t -> taskRepository.save(t.getT2()));
     }
 
     public Mono<Task> update(String id, Task task) {
@@ -88,9 +97,9 @@ public class TaskService {
     private Mono<Task> getFilledMonoTask(Task task) {
         return Mono.zip(
                 userRepository.findById(task.getAuthorId())
-                        .defaultIfEmpty(new User(null, null, null)),
+                        .defaultIfEmpty(new User()),
                 userRepository.findById(task.getAssigneeId())
-                        .defaultIfEmpty(new User(null, null, null)),
+                        .defaultIfEmpty(new User()),
                 getMonoUserList(task))
                 .map(tuple -> {
                     if (tuple.getT1().getId() == null) {
@@ -110,5 +119,12 @@ public class TaskService {
 
     private Mono<List<User>> getMonoUserList(Task task) {
         return userRepository.findAllById(task.getObserverIds()).collectList();
+    }
+
+    private static Mono<String> getAuthUsername() {
+        return ReactiveSecurityContextHolder.getContext()
+                .map(SecurityContext::getAuthentication)
+                .map(authentication -> (AppUserPrincipal) authentication.getPrincipal())
+                .map(AppUserPrincipal::getUsername);
     }
 }

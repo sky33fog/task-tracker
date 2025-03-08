@@ -22,9 +22,6 @@ public class UpsertTaskRequest {
             message = "Статус задачи может иметь только значения: TODO, IN_PROGRESS, DONE ")
     private String status;
 
-    @NotBlank(message = "ID автора должно быть указано!")
-    private String authorId;
-
     private String assigneeId;
 
     private Set<String> observerIds;

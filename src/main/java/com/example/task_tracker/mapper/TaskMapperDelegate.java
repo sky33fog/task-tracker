@@ -16,29 +16,36 @@ public abstract class TaskMapperDelegate implements TaskMapper{
     private UserRepository userRepository;
 
     @Override
-    public Task responseTotask(UpsertTaskRequest request) {
+    public Task requestToTask(UpsertTaskRequest request) {
         Task task = new Task();
 
         task.setName(request.getName());
         task.setDescription(request.getDescription());
         task.setStatus(TaskStatus.valueOf(request.getStatus()));
-        task.setAuthorId(request.getAuthorId());
         task.setAssigneeId(request.getAssigneeId());
         task.setObserverIds(request.getObserverIds());
-        task.setAuthor(userRepository.findById(request.getAuthorId()).block());
-        task.setAssignee(userRepository.findById(request.getAssigneeId()).block());
+        userRepository.findById(request.getAssigneeId()).map(u -> {
+            task.setAssignee(u);
+            return task;
+        });
 
         Set<User> observersSet = new HashSet<>();
-        request.getObserverIds().forEach(userId -> {
-            observersSet.add(userRepository.findById(userId).block());
-        });
+
+        if(request.getObserverIds() != null) {
+            request.getObserverIds().forEach(userId -> {
+                userRepository.findById(userId).map(o -> {
+                    observersSet.add(o);
+                    return observersSet;
+                });
+            });
+        }
         task.setObservers(observersSet);
         return task;
     }
 
     @Override
-    public Task responseToTask(String id, UpsertTaskRequest request) {
-        Task task = responseToTask(request);
+    public Task requestToTask(String id, UpsertTaskRequest request) {
+        Task task = this.requestToTask(request);
 
         task.setId(id);
         return task;
